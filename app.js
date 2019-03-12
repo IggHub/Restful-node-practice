@@ -1,8 +1,9 @@
 const express = require('express');
+const bcrypt = require('bcrypt');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const userRoutes = require('./api/routes');
-const {connectDb, eraseDbOnSync, user} = require('./api/models');
+const {connectDb, eraseDbOnSync, User} = require('./api/models');
 
 const app = express();
 
@@ -20,7 +21,7 @@ app.use('/users', userRoutes.user);
 
 connectDb().then(async () => {
   if(eraseDbOnSync){
-    await user.deleteMany({});
+    await User.deleteMany({});
   };
   createFakeUsers();
 
@@ -30,17 +31,20 @@ connectDb().then(async () => {
 });
 
 const createFakeUsers = async () => {
-  const user1 = new user({
+  const password1 = await bcrypt.hash('password1', 10);
+  const user1 = new User({
     email: 'user1@gmail.com',
-    password: 'password'
+    password: password1
   }); 
-  const user2 = new user({
+  const password2 = await bcrypt.hash('password2', 10);
+  const user2 = new User({
     email: 'user2@gmail.com',
-    password: 'password'
+    password: password2
   });
-  const user3 = new user({
+  const password3 = await bcrypt.hash('password3', 10);
+  const user3 = new User({
     email: 'user3@gmail.com',
-    password: 'password'
+    password: password3
   });
 
   await user1.save();
