@@ -1,4 +1,5 @@
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const express = require('express');
 const router = express.Router();
 const {User} = require('../models');
@@ -55,23 +56,32 @@ router.post("/signup", (req, res, next) => {
 });
 
 router.post('/login', async (req, res, next) => {
-  // check server for login
-  // if login is found and matches password + email
-  // authenticate
-  const user = await User.find({email: req.body.email});
-  console.log('user: ', user);
-  if(user.length < 1) {
-    return res.status(403).json({
-      message: 'Auth failed'
-    })
-  } else {
-    const passwordCompare = await bcrypt.compare(req.body.password, user[0].password);
-    console.log('pasword compare: ', passwordCompare);
-    if(passwordCompare) {
-      res.status(200).json({message: 'login successful!'}); 
+  try {
+    const user = await User.find({email: req.body.email});
+    console.log('user: ', user);
+    if(user.length < 1) {
+      return res.status(403).json({
+        message: 'Auth failed'
+      })
     } else {
-      res.status(403).json({message: 'Auth error'});
+      const passwordCompare = await bcrypt.compare(req.body.password, user[0].password);
+      console.log('pasword compare: ', passwordCompare);
+      if(passwordCompare) {
+        const token = jwt.sign({
+          email: user[0].email,
+          password: user[0].password // need to use user[0]'s instead of req.body.pasword, because that one has unencrypted password. Don't want to be carrying plaintext password in JWT as that is sensitive info
+        }, 'secret', {expiresIn: '30min'}); 
+
+        res.status(200).json({message: 'login successful!', token}); 
+      } else {
+        res.status(401).json({message: 'Auth error'});
+      }
     }
+  } catch (err) {
+    console.log('error: ', err);
+    res.send(500).json({
+      message: 'auth error'
+    });
   }
 });
 module.exports = router;
