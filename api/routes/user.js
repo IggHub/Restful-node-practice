@@ -84,4 +84,59 @@ router.post('/login', async (req, res, next) => {
     });
   }
 });
+
+// protect the route
+router.get('/user/:userId',checkToken, async(req, res, next) => {
+  jwt.verify(req.token, 'secret', async (err, decodedData) => {
+    if(err) {
+      console.log('err: ', err);
+      res.send(401).json({message: 'your token doen\'t match'});
+    } else {
+      const paramsUserId = req.params.userId;
+      console.log('userId: ', paramsUserId);
+
+      const data = decodedData;
+      const email = data.email;
+      const password = data.password;
+      
+      const user = await User.find({email: email});
+      res.send('successful');
+    }
+  }); 
+});
+
+router.delete('/user/:userId', async (req, res, next) => {
+  try {
+    console.log('token: ', req.body.token);
+    jwt.verify(req.body.token, 'secret', async (err, decoded) => {
+      if(err) {
+        console.log('err: ', err);
+        return res.send(403).json({message: 'action failed'});
+      }  
+      const user = await User.find({email: req.body.email});
+      const result = await user.remove(); 
+      return res.status(200).json({
+        message: 'action successful'
+      });
+    });
+
+  } catch(err) {
+    console.log('Error: ', err);
+    res.status(500).json({
+      message: 'Action failed'
+    });
+  }
+});
+
+function checkToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  if(typeof authHeader !== 'undefined'){
+    const bearerToken = authHeader.split(' ')[1];
+    console.log('bearer is: ', bearerToken);
+    req.token = bearerToken;
+    next();
+  } else {
+    return res.send('checkToken failed...');
+  }
+};
 module.exports = router;
